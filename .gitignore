@@ -1,0 +1,72 @@
+# ===========================
+# 1. Dependencies (依赖)
+# ===========================
+node_modules
+**/node_modules
+
+# ===========================
+# 2. Build Outputs (构建产物)
+# ===========================
+dist
+lib
+build
+out
+.output
+
+# ===========================
+# 3. Logs & Diagnostics (日志)
+# ===========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===========================
+# 4. Environment & Secrets (环境变量 - 严禁上传)
+# ===========================
+.env
+.env.local
+.env.*
+
+# ===========================
+# 5. OS Files (系统文件)
+# ===========================
+.DS_Store
+Thumbs.db
+
+# ===========================
+# 6. IDE Settings (编辑器配置)
+# ===========================
+.idea
+.vscode/
+# 允许上传 vscode 的推荐插件和运行配置
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# ===========================
+# 7. Framework/Tool Specific (工具缓存)
+# ===========================
+# TypeScript
+*.tsbuildinfo
+
+# TurboRepo
+.turbo
+**/.turbo
+
+# ===========================
+# 8. Sample/Test Data (素材库)
+# 逻辑：保留文件夹结构，保留说明书，但忽略所有视频/大文件
+# ===========================
+# 1. 忽略 samples 下的所有文件（包含子文件夹深处的文件）
+samples/**
+
+# 2. 例外：不要忽略文件夹本身（让 Git 能进入子目录）
+!samples/**/
+
+# 3. 例外：保留所有层级的 .gitkeep 占位文件
+!samples/**/.gitkeep
+
+# 4. 例外：保留 samples 根目录下的说明书
+!samples/README.md
