@@ -1,0 +1,134 @@
+#EXTM3U
+# --- 央视系列 ---
+#EXTINF:-1 tvg-name="CCTV-1 综合" group-title="央视系列", CCTV-1 综合
+http://localhost:11888/live?pid=600001859
+#EXTINF:-1 tvg-name="CCTV-2 财经" group-title="央视系列", CCTV-2 财经
+http://localhost:11888/live?pid=600001800
+#EXTINF:-1 tvg-name="CCTV-3 综艺" group-title="央视系列", CCTV-3 综艺
+http://localhost:11888/live?pid=600001801
+#EXTINF:-1 tvg-name="CCTV-4 中文国际" group-title="央视系列", CCTV-4 中文国际
+http://localhost:11888/live?pid=600001814
+#EXTINF:-1 tvg-name="CCTV-5 体育" group-title="央视系列", CCTV-5 体育
+http://localhost:11888/live?pid=600001818
+#EXTINF:-1 tvg-name="CCTV-5+ 体育赛事" group-title="央视系列", CCTV-5+ 体育赛事
+http://localhost:11888/live?pid=600001817
+#EXTINF:-1 tvg-name="CCTV-6 电影" group-title="央视系列", CCTV-6 电影
+http://localhost:11888/live?pid=600108442
+#EXTINF:-1 tvg-name="CCTV-7 军事纪实" group-title="央视系列", CCTV-7 军事纪实
+http://localhost:11888/live?pid=600004092
+#EXTINF:-1 tvg-name="CCTV-8 电视剧" group-title="央视系列", CCTV-8 电视剧
+http://localhost:11888/live?pid=600001803
+#EXTINF:-1 tvg-name="CCTV-9 纪录" group-title="央视系列", CCTV-9 纪录
+http://localhost:11888/live?pid=600004078
+#EXTINF:-1 tvg-name="CCTV-10 科教" group-title="央视系列", CCTV-10 科教
+http://localhost:11888/live?pid=600001805
+#EXTINF:-1 tvg-name="CCTV-11 戏曲" group-title="央视系列", CCTV-11 戏曲
+http://localhost:11888/live?pid=600001806
+#EXTINF:-1 tvg-name="CCTV-12 社会与法" group-title="央视系列", CCTV-12 社会与法
+http://localhost:11888/live?pid=600001807
+#EXTINF:-1 tvg-name="CCTV-13 新闻" group-title="央视系列", CCTV-13 新闻
+http://localhost:11888/live?pid=600001811
+#EXTINF:-1 tvg-name="CCTV-14 少儿" group-title="央视系列", CCTV-14 少儿
+http://localhost:11888/live?pid=600001809
+#EXTINF:-1 tvg-name="CCTV-15 音乐" group-title="央视系列", CCTV-15 音乐
+http://localhost:11888/live?pid=600001815
+#EXTINF:-1 tvg-name="CCTV-16 奥林匹克HD" group-title="央视系列", CCTV-16 奥林匹克HD
+http://localhost:11888/live?pid=600098637
+#EXTINF:-1 tvg-name="CCTV-16 奥林匹克4K" group-title="央视系列", CCTV-16 奥林匹克4K
+http://localhost:11888/live?pid=600099502
+#EXTINF:-1 tvg-name="CCTV-17 农业农村" group-title="央视系列", CCTV-17 农业农村
+http://localhost:11888/live?pid=600001810
+
+# --- 超高清与特色频道 ---
+#EXTINF:-1 tvg-name="CCTV-4K 超高清" group-title="超高清与特色", CCTV-4K 超高清
+http://localhost:11888/live?pid=600002264
+#EXTINF:-1 tvg-name="CCTV-8K 超高清" group-title="超高清与特色", CCTV-8K 超高清
+http://localhost:11888/live?pid=600156816
+#EXTINF:-1 tvg-name="CCTV 风云剧场" group-title="超高清与特色", CCTV 风云剧场
+http://localhost:11888/live?pid=600099658
+#EXTINF:-1 tvg-name="CCTV 第一剧场" group-title="超高清与特色", CCTV 第一剧场
+http://localhost:11888/live?pid=600099655
+#EXTINF:-1 tvg-name="CCTV 怀旧剧场" group-title="超高清与特色", CCTV 怀旧剧场
+http://localhost:11888/live?pid=600099620
+
+# --- CGTN 外语系列 ---
+#EXTINF:-1 tvg-name="CGTN 英文" group-title="CGTN 外语", CGTN 英文
+http://localhost:11888/live?pid=600014550
+#EXTINF:-1 tvg-name="CGTN 法语" group-title="CGTN 外语", CGTN 法语
+http://localhost:11888/live?pid=600084704
+#EXTINF:-1 tvg-name="CGTN 俄语" group-title="CGTN 外语", CGTN 俄语
+http://localhost:11888/live?pid=600084758
+#EXTINF:-1 tvg-name="CGTN 阿拉伯语" group-title="CGTN 外语", CGTN 阿拉伯语
+http://localhost:11888/live?pid=600084782
+#EXTINF:-1 tvg-name="CGTN 西班牙语" group-title="CGTN 外语", CGTN 西班牙语
+http://localhost:11888/live?pid=600084744
+#EXTINF:-1 tvg-name="CGTN 纪录频道" group-title="CGTN 外语", CGTN 纪录频道
+http://localhost:11888/live?pid=600084781
+
+# --- 热门卫视频道 ---
+#EXTINF:-1 tvg-name="北京卫视" group-title="热门卫视", 北京卫视
+http://localhost:11888/live?pid=600002309
+#EXTINF:-1 tvg-name="江苏卫视" group-title="热门卫视", 江苏卫视
+http://localhost:11888/live?pid=600002521
+#EXTINF:-1 tvg-name="东方卫视" group-title="热门卫视", 东方卫视
+http://localhost:11888/live?pid=600002483
+#EXTINF:-1 tvg-name="浙江卫视" group-title="热门卫视", 浙江卫视
+http://localhost:11888/live?pid=600002520
+#EXTINF:-1 tvg-name="湖南卫视" group-title="热门卫视", 湖南卫视
+http://localhost:11888/live?pid=600002475
+#EXTINF:-1 tvg-name="湖北卫视" group-title="热门卫视", 湖北卫视
+http://localhost:11888/live?pid=600002508
+#EXTINF:-1 tvg-name="广东卫视" group-title="热门卫视", 广东卫视
+http://localhost:11888/live?pid=600002485
+#EXTINF:-1 tvg-name="广西卫视" group-title="热门卫视", 广西卫视
+http://localhost:11888/live?pid=600002509
+#EXTINF:-1 tvg-name="黑龙江卫视" group-title="热门卫视", 黑龙江卫视
+http://localhost:11888/live?pid=600002498
+#EXTINF:-1 tvg-name="海南卫视" group-title="热门卫视", 海南卫视
+http://localhost:11888/live?pid=600002506
+#EXTINF:-1 tvg-name="重庆卫视" group-title="热门卫视", 重庆卫视
+http://localhost:11888/live?pid=600002531
+#EXTINF:-1 tvg-name="深圳卫视" group-title="热门卫视", 深圳卫视
+http://localhost:11888/live?pid=600002481
+#EXTINF:-1 tvg-name="四川卫视" group-title="热门卫视", 四川卫视
+http://localhost:11888/live?pid=600002516
+#EXTINF:-1 tvg-name="河南卫视" group-title="热门卫视", 河南卫视
+http://localhost:11888/live?pid=600002525
+#EXTINF:-1 tvg-name="东南卫视" group-title="热门卫视", 东南卫视
+http://localhost:11888/live?pid=600002484
+#EXTINF:-1 tvg-name="贵州卫视" group-title="热门卫视", 贵州卫视
+http://localhost:11888/live?pid=600002490
+#EXTINF:-1 tvg-name="江西卫视" group-title="热门卫视", 江西卫视
+http://localhost:11888/live?pid=600002503
+#EXTINF:-1 tvg-name="辽宁卫视" group-title="热门卫视", 辽宁卫视
+http://localhost:11888/live?pid=600002505
+#EXTINF:-1 tvg-name="安徽卫视" group-title="热门卫视", 安徽卫视
+http://localhost:11888/live?pid=600002532
+#EXTINF:-1 tvg-name="河北卫视" group-title="热门卫视", 河北卫视
+http://localhost:11888/live?pid=600002493
+#EXTINF:-1 tvg-name="山东卫视" group-title="热门卫视", 山东卫视
+http://localhost:11888/live?pid=600002513
+#EXTINF:-1 tvg-name="天津卫视" group-title="热门卫视", 天津卫视
+http://localhost:11888/live?pid=600152137
+#EXTINF:-1 tvg-name="吉林卫视" group-title="热门卫视", 吉林卫视
+http://localhost:11888/live?pid=600190405
+
+# --- 西部与特色卫视 ---
+#EXTINF:-1 tvg-name="陕西卫视" group-title="热门卫视", 陕西卫视
+http://localhost:11888/live?pid=600190400
+#EXTINF:-1 tvg-name="宁夏卫视" group-title="热门卫视", 宁夏卫视
+http://localhost:11888/live?pid=600190737
+#EXTINF:-1 tvg-name="内蒙古卫视" group-title="热门卫视", 内蒙古卫视
+http://localhost:11888/live?pid=600190401
+#EXTINF:-1 tvg-name="云南卫视" group-title="热门卫视", 云南卫视
+http://localhost:11888/live?pid=600190402
+#EXTINF:-1 tvg-name="山西卫视" group-title="热门卫视", 山西卫视
+http://localhost:11888/live?pid=600190407
+#EXTINF:-1 tvg-name="青海卫视" group-title="热门卫视", 青海卫视
+http://localhost:11888/live?pid=600190406
+#EXTINF:-1 tvg-name="西藏卫视" group-title="热门卫视", 西藏卫视
+http://localhost:11888/live?pid=600190403
+#EXTINF:-1 tvg-name="新疆卫视" group-title="热门卫视", 新疆卫视
+http://localhost:11888/live?pid=600152138
+#EXTINF:-1 tvg-name="教育1台" group-title="热门卫视", 教育1台
+http://localhost:11888/live?pid=600171827
