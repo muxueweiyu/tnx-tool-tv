@@ -14,16 +14,16 @@
 
 ```mermaid
 graph TD
-    Client[📺 播放客户端 MPV / TV] -- "1. 访问 /live?pid=XXX" --> HTTP[📡 HTTP 网关]
-    HTTP -- "2. 注册并获取频道" --> Channel[📦 ChannelInstance]
-    Channel -- "3. 启动/复用共享标签页" --> Playwright[🌐 Chromium 共享进程]
-    Playwright -- "4. 注入 InitScript 挂钩" --> SourceBuffer["JS 拦截 (appendBuffer)"]
-    SourceBuffer -- "5. 二进制分轨流" --> WS[🔌 WebSocket 服务端]
-    WS -- "6. 原始数据包" --> Sync["🛠️ mp4-sync (内存时间戳对齐)"]
-    Sync -- "7. 音画双管道输入" --> FFmpeg["🚀 FFmpeg 封装引擎 (-c:v copy)"]
-    FFmpeg -- "8. 封装好的 MPEGTS 流" --> Channel
-    Channel -- "9. 广播推送" --> HTTP
-    HTTP -- "10. 实时响应" --> Client
+    Client[📺 播放客户端 MPV / TV] -- "1: 访问 /live?pid=XXX" --> HTTP[📡 HTTP 网关]
+    HTTP -- "2: 注册并获取频道" --> Channel[📦 ChannelInstance]
+    Channel -- "3: 启动/复用共享标签页" --> Playwright[🌐 Chromium 共享进程]
+    Playwright -- "4: 注入 InitScript 挂钩" --> SourceBuffer["JS 拦截 (appendBuffer)"]
+    SourceBuffer -- "5: 二进制分轨流" --> WS[🔌 WebSocket 服务端]
+    WS -- "6: 原始数据包" --> Sync["🛠️ mp4-sync (内存时间戳对齐)"]
+    Sync -- "7: 音画双管道输入" --> FFmpeg["🚀 FFmpeg 封装引擎 (-c:v copy)"]
+    FFmpeg -- "8: 封装好的 MPEGTS 流" --> Channel
+    Channel -- "9: 广播推送" --> HTTP
+    HTTP -- "10: 实时响应" --> Client
 ```
 
 ---
