@@ -34,3 +34,21 @@ export function castToTv(tvIp: string, adbPort: number, streamUrl: string, name:
         });
     });
 }
+
+export function sendKeyToTv(tvIp: string, adbPort: number, keyCode: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        // 确保连接
+        connectTv(tvIp, adbPort);
+        const target = `${tvIp}:${adbPort}`;
+        const adbCmd = `adb -s ${target} shell input keyevent ${keyCode}`;
+        exec(adbCmd, (err) => {
+            if (err) {
+                console.warn(`⚠️ [ADB] 发送按键 ${keyCode} 失败:`, err.message);
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        });
+    });
+}
+
