@@ -43,7 +43,8 @@ export function spawnFFmpeg(ffmpegPath: string, pid: string): ChildProcess {
 
     const child = spawn(ffmpegPath, [...inputArgs, ...outputArgs, ...audioArgs], {
         stdio: ['pipe', 'pipe', 'inherit', 'pipe'],
-        shell: process.platform === 'win32' && !ffmpegPath.toLowerCase().endsWith('.exe')
+        shell: process.platform === 'win32' && !ffmpegPath.toLowerCase().endsWith('.exe'),
+        windowsHide: true
     });
 
     child.stdin?.on('error', noop);
