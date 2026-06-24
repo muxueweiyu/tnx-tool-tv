@@ -1,7 +1,24 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { AppConfig } from '../core/models/config.js';
 
+class AsyncLock {
+    private promise: Promise<void> = Promise.resolve();
+
+    async acquire(): Promise<() => void> {
+        let release: () => void;
+        const nextPromise = new Promise<void>((resolve) => {
+            release = resolve;
+        });
+        const currentPromise = this.promise;
+        this.promise = nextPromise;
+        await currentPromise;
+        return release!;
+    }
+}
+
+const lock = new AsyncLock();
 let browserInstance: Browser | null = null;
+let sharedContext: BrowserContext | null = null;
 
 export async function getBrowser(): Promise<Browser> {
     if (!browserInstance) {
@@ -27,10 +44,155 @@ export async function getBrowser(): Promise<Browser> {
 }
 
 export async function closeBrowser(): Promise<void> {
-    if (browserInstance) {
-        await browserInstance.close();
-        browserInstance = null;
-        console.log(`📡 [System] Playwright Chromium 共享主进程已关闭`);
+    const release = await lock.acquire();
+    try {
+        if (sharedContext) {
+            await sharedContext.close().catch(() => {});
+            sharedContext = null;
+            console.log(`📡 [System] Playwright Chromium 共享上下文已关闭`);
+        }
+        if (browserInstance) {
+            await browserInstance.close();
+            browserInstance = null;
+            console.log(`📡 [System] Playwright Chromium 共享主进程已关闭`);
+        }
+    } finally {
+        release();
+    }
+}
+
+export async function getSharedContext(config: AppConfig): Promise<BrowserContext> {
+    if (!sharedContext) {
+        const browser = await getBrowser();
+        console.log(`📡 [System] 正在初始化 Playwright Chromium 共享上下文...`);
+        sharedContext = await browser.newContext({ userAgent: config.userAgent });
+        console.log(`🚀 [System] 共享上下文已初始化`);
+    }
+    return sharedContext;
+}
+
+export async function createChannelPage(
+    pid: string, 
+    config: AppConfig
+): Promise<Page> {
+    const release = await lock.acquire();
+    try {
+        const context = await getSharedContext(config);
+        console.log(`🌏 [Page] [${pid}] 创建页面标签页 (使用共享上下文)...`);
+        const page = await context.newPage();
+
+        try {
+            // 静态资源拦截过滤，降低 50% 内存 and CPU (保留 CSS 保证播放器布局，仅拦截图片、字体和追踪脚本)
+            await page.route('**/*', (route) => {
+                const req = route.request();
+                const type = req.resourceType();
+                const url = req.url().toLowerCase();
+                if (
+                    type === 'image' || 
+                    type === 'font' ||
+                    url.endsWith('.svg') ||
+                    url.includes('.svg?') ||
+                    url.endsWith('.woff') ||
+                    url.endsWith('.woff2') ||
+                    url.endsWith('.ttf') ||
+                    url.includes('google-analytics') ||
+                    url.includes('doubleclick') ||
+                    url.includes('adservice')
+                ) {
+                    route.abort();
+                } else {
+                    route.continue();
+                }
+            });
+
+            // 注入包含 pid 身份标识 of WebSocket 连接，拦截 SourceBuffer.appendBuffer
+            await page.addInitScript(({ wsPort, pid }) => {
+                // 1. 双通道 WebSocket 及发送队列
+                const videoWs = new WebSocket(`ws://localhost:${wsPort}?pid=${pid}&track=video`);
+                videoWs.binaryType = 'arraybuffer';
+                const audioWs = new WebSocket(`ws://localhost:${wsPort}?pid=${pid}&track=audio`);
+                audioWs.binaryType = 'arraybuffer';
+
+                const videoQueue: Uint8Array[] = [];
+                const audioQueue: Uint8Array[] = [];
+
+                videoWs.onopen = () => {
+                    console.log('📡 [WS] 视频连接就绪，清空队列中的 ' + videoQueue.length + ' 个数据包');
+                    while (videoQueue.length > 0) {
+                        const pkt = videoQueue.shift();
+                        if (pkt) videoWs.send(pkt);
+                    }
+                };
+
+                audioWs.onopen = () => {
+                    console.log('📡 [WS] 音频连接就绪，清空队列中的 ' + audioQueue.length + ' 个数据包');
+                    while (audioQueue.length > 0) {
+                        const pkt = audioQueue.shift();
+                        if (pkt) audioWs.send(pkt);
+                    }
+                };
+
+                // 2. 劫持 addSourceBuffer 标记轨道
+                const orgAddSourceBuffer = MediaSource.prototype.addSourceBuffer;
+                MediaSource.prototype.addSourceBuffer = function (mimeType: string) {
+                    const sb = orgAddSourceBuffer.call(this, mimeType);
+                    const self = sb as any;
+                    if (mimeType.includes('video')) {
+                        self.__trackType = 'video';
+                    } else if (mimeType.includes('audio')) {
+                        self.__trackType = 'audio';
+                    }
+                    return sb;
+                };
+
+                // 3. 劫持 appendBuffer 发送 raw ArrayBuffer
+                const orgAppendBuffer = SourceBuffer.prototype.appendBuffer;
+                SourceBuffer.prototype.appendBuffer = function (d: BufferSource) {
+                    const self = this as any;
+                    
+                    // 提取精准的字节切片，防止发送大 ArrayBuffer 里的冗余或偏移数据
+                    const buf = d instanceof ArrayBuffer ? d : d.buffer;
+                    const offset = (d as ArrayBufferView).byteOffset || 0;
+                    const len = d.byteLength;
+                    const slice = new Uint8Array(buf, offset, len);
+
+                    if (self.__trackType === 'video') {
+                        if (videoWs.readyState === 1) {
+                            videoWs.send(slice);
+                        } else {
+                            videoQueue.push(slice);
+                        }
+                    } else if (self.__trackType === 'audio') {
+                        if (audioWs.readyState === 1) {
+                            audioWs.send(slice);
+                        } else {
+                            audioQueue.push(slice);
+                        }
+                    }
+                    return orgAppendBuffer.call(this, d);
+                };
+            }, { wsPort: config.wsPort, pid });
+
+            return page;
+        } catch (err) {
+            await page.close().catch(() => {});
+            throw err;
+        }
+    } finally {
+        release();
+    }
+}
+
+export async function closeChannelPage(page: Page | null): Promise<void> {
+    if (!page) return;
+    const release = await lock.acquire();
+    try {
+        if (!page.isClosed()) {
+            await page.close().catch(() => {});
+            console.log(`🗑️ [Page] 标签页已安全关闭`);
+        }
+    } finally {
+        release();
     }
 }
 
@@ -38,53 +200,8 @@ export async function createChannelContext(
     pid: string, 
     config: AppConfig
 ): Promise<{ context: BrowserContext; page: Page }> {
-    const browser = await getBrowser();
-    console.log(`🌏 [Page] [${pid}] 创建页面标签页...`);
-    const context = await browser.newContext({ userAgent: config.userAgent });
-    const page = await context.newPage();
-
-    // 静态资源拦截过滤，降低 50% 内存 and CPU
-    await page.route('**/*', (route) => {
-        const req = route.request();
-        const type = req.resourceType();
-        const url = req.url();
-        if (
-            type === 'image' || 
-            type === 'font' ||
-            url.includes('google-analytics') ||
-            url.includes('doubleclick') ||
-            url.includes('adservice')
-        ) {
-            route.abort();
-        } else {
-            route.continue();
-        }
-    });
-
-    // 注入包含 pid 身份标识 of WebSocket 连接，拦截 SourceBuffer.appendBuffer
-    await page.addInitScript(({ wsPort, pid }) => {
-        const ws = new WebSocket(`ws://localhost:${wsPort}?pid=${pid}`);
-        ws.binaryType = 'arraybuffer';
-        let tid = 0;
-        const org = SourceBuffer.prototype.appendBuffer;
-        SourceBuffer.prototype.appendBuffer = function(d: BufferSource) {
-            const self = this as any;
-            if (self.__reaperId === undefined) self.__reaperId = ++tid;
-            
-            const buf = d instanceof ArrayBuffer ? d : (d as ArrayBufferView).buffer;
-            const byteOffset = (d as ArrayBufferView).byteOffset || 0;
-            const byteLength = d.byteLength;
-            const dataBytes = new Uint8Array(buf, byteOffset, byteLength);
-            
-            const p = new Uint8Array(dataBytes.byteLength + 1);
-            p[0] = self.__reaperId;
-            p.set(dataBytes, 1);
-            
-            if (ws.readyState === 1) ws.send(p);
-            return org.call(this, d);
-        };
-    }, { wsPort: config.wsPort, pid });
-
+    const page = await createChannelPage(pid, config);
+    const context = await getSharedContext(config);
     return { context, page };
 }
 
@@ -109,12 +226,11 @@ export async function loadAndPlay(page: Page, pid: string): Promise<void> {
         `;
         document.head.appendChild(style);
 
-        // 2. 定期裁剪和静音视频
+        // 2. 初始播放唤醒
         const wakeUp = setInterval(() => {
             const v = document.querySelector('video');
             if (v && v.readyState >= 2) {
                 v.muted = true;
-                // 核心优化：将视频缩放到极小，强制不进行主画面解码与渲染，节省 80% 渲染 CPU
                 v.style.width = '1px';
                 v.style.height = '1px';
                 v.style.opacity = '0.001';
@@ -128,8 +244,33 @@ export async function loadAndPlay(page: Page, pid: string): Promise<void> {
             const b = document.querySelector('.video-player') as HTMLElement; 
             if (b) b.click();
         }, 500);
-        
         setTimeout(() => clearInterval(wakeUp), 10000);
+
+        // 3. 持续性 Tab Keep-Alive 脚本，每 5 秒守护一次
+        const keepAliveInterval = setInterval(() => {
+            const v = document.querySelector('video');
+            if (v) {
+                v.muted = true;
+                if (v.paused) {
+                    v.play().catch(() => {});
+                }
+                v.style.width = '1px';
+                v.style.height = '1px';
+                v.style.opacity = '0.001';
+                v.style.position = 'absolute';
+                v.style.left = '-9999px';
+            }
+            
+            // 点击播放器以激活或关闭暂停蒙层
+            const player = document.querySelector('.video-player') as HTMLElement;
+            if (player && v && v.paused) {
+                player.click();
+            }
+            
+            // 模拟用户交互以防挂起
+            window.dispatchEvent(new MouseEvent('mousemove'));
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        }, 5000);
     });
 }
 

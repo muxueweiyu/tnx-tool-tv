@@ -3,7 +3,7 @@ import { Page, BrowserContext } from 'playwright';
 import { ChildProcess } from 'child_process';
 import { TrackMap, StreamState, ChannelStatus } from '../core/models/channel.js';
 import { AppConfig } from '../core/models/config.js';
-import { createChannelContext, loadAndPlay, getPageJSHeapMemory } from '../infrastructure/browser-provider.js';
+import { createChannelContext, loadAndPlay, getPageJSHeapMemory, closeChannelPage } from '../infrastructure/browser-provider.js';
 import { spawnFFmpeg, safeWrite } from '../infrastructure/ffmpeg-provider.js';
 import { getTimescale, cleanAndSyncFragment } from '../infrastructure/mp4-sync.js';
 
@@ -116,20 +116,34 @@ export class ChannelManagerService {
         }
     }
 
-    public handleWebSocketMessage(pid: string, message: Buffer): void {
+    public handleWebSocketMessage(pid: string, track: string, chunk: Buffer): void {
         const channel = this.channels.get(pid);
         if (!channel) {
             return;
         }
 
         channel.lastDataTime = Date.now();
-        const trackId = message[0];
-        const chunk = message.subarray(1);
         const isHeader = chunk.indexOf(Buffer.from([0x66, 0x74, 0x79, 0x70])) !== -1;
-
         const trackMap = channel.trackMap;
 
-        if (trackId === trackMap.video.id) {
+        if (isHeader) {
+            console.log(`💎 [Header] [${pid}] 识别到 ${track.toUpperCase()} 轨道头部`);
+            if (track === 'video') {
+                trackMap.video.header = chunk;
+                const ts = getTimescale(chunk);
+                if (ts) channel.streamState.tracks.video.timescale = ts;
+            } else if (track === 'audio') {
+                trackMap.audio.header = chunk;
+                const ts = getTimescale(chunk);
+                if (ts) channel.streamState.tracks.audio.timescale = ts;
+            }
+            if (trackMap.video.header && trackMap.audio.header) {
+                this.startFFmpeg(channel);
+            }
+            return;
+        }
+
+        if (track === 'video') {
             const processed = cleanAndSyncFragment(chunk, 'video', channel.streamState, pid);
             if (channel.ffmpeg) {
                 safeWrite(channel.ffmpeg.stdin, processed);
@@ -138,8 +152,8 @@ export class ChannelManagerService {
             }
             return;
         }
-        
-        if (trackId === trackMap.audio.id) {
+
+        if (track === 'audio') {
             const processed = cleanAndSyncFragment(chunk, 'audio', channel.streamState, pid);
             const audioInput = channel.ffmpeg?.stdio[3] as Writable | undefined;
             if (channel.ffmpeg && audioInput) {
@@ -148,26 +162,6 @@ export class ChannelManagerService {
                 trackMap.audio.buffer.push(processed);
             }
             return;
-        }
-
-        if (isHeader) {
-            const type = chunk.includes(Buffer.from('vide')) ? 'VIDEO' : 'AUDIO';
-            console.log(`💎 [Header] [${pid}] 识别到 ${type} 轨道`);
-            if (type === 'VIDEO') { 
-                trackMap.video.id = trackId; 
-                trackMap.video.header = chunk;
-                const ts = getTimescale(chunk);
-                if (ts) channel.streamState.tracks.video.timescale = ts;
-            } 
-            else { 
-                trackMap.audio.id = trackId; 
-                trackMap.audio.header = chunk; 
-                const ts = getTimescale(chunk);
-                if (ts) channel.streamState.tracks.audio.timescale = ts;
-            }
-            if (trackMap.video.header && trackMap.audio.header) {
-                this.startFFmpeg(channel);
-            }
         }
     }
 
@@ -223,12 +217,11 @@ export class ChannelManagerService {
         }
 
         if (channel.page) {
-            try { await channel.page.close().catch(() => {}); } catch (e) {}
+            try { await closeChannelPage(channel.page); } catch (e) {}
+            channel.page = null;
         }
 
-        if (channel.context) {
-            try { await channel.context.close().catch(() => {}); } catch (e) {}
-        }
+        channel.context = null;
 
         channel.stream.destroy();
         this.channels.delete(pid);
@@ -280,11 +273,10 @@ export class ChannelManagerService {
                     channel.streamState.tracks.audio.lastOutDtsEnd = null;
 
                     if (channel.page) {
-                        try { await channel.page.close().catch(() => {}); } catch (e) {}
+                        try { await closeChannelPage(channel.page); } catch (e) {}
+                        channel.page = null;
                     }
-                    if (channel.context) {
-                        try { await channel.context.close().catch(() => {}); } catch (e) {}
-                    }
+                    channel.context = null;
 
                     // 热重启加载
                     this.launchChannel(channel).catch(err => {

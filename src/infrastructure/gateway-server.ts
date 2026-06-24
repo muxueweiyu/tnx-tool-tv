@@ -33,9 +33,10 @@ export class GatewayServer {
             const reqUrl = req.url || '/';
             const parsedUrl = new URL(reqUrl, `http://${req.headers.host || 'localhost'}`);
             const pid = parsedUrl.searchParams.get('pid');
+            const track = parsedUrl.searchParams.get('track');
 
-            if (!pid) {
-                console.warn("⚠️ [WS] 拒绝未指定 pid 的连接");
+            if (!pid || !track || (track !== 'video' && track !== 'audio')) {
+                console.warn(`⚠️ [WS] 拒绝无效连接 (pid: ${pid}, track: ${track})`);
                 ws.close();
                 return;
             }
@@ -48,10 +49,10 @@ export class GatewayServer {
                 return;
             }
 
-            console.log(`📡 [WS] [${pid}] 浏览器解密流客户端已连接`);
+            console.log(`📡 [WS] [${pid}] [${track}] 浏览器解密流客户端已连接`);
 
             ws.on('message', (message: Buffer) => {
-                this.channelManager.handleWebSocketMessage(pid, message);
+                this.channelManager.handleWebSocketMessage(pid, track, message);
             });
 
             ws.on('error', (err) => {
