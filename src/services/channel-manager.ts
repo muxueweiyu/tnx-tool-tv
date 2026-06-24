@@ -15,7 +15,7 @@ export class ChannelInstance {
     public viewers: number = 0;
     public cleanupTimer: NodeJS.Timeout | null = null;
     public lastDataTime: number = Date.now();
-    public stream: PassThrough;
+    public viewerStreams = new Set<PassThrough>();
     
     public trackMap: TrackMap = {
         video: { id: null, header: null, buffer: [] },
@@ -32,9 +32,6 @@ export class ChannelInstance {
 
     constructor(pid: string) {
         this.pid = pid;
-        this.stream = new PassThrough({ highWaterMark: 16 * 1024 * 1024 });
-        this.stream.on('data', () => {}); // 保持流动，防止缓冲区挂起
-        this.stream.on('error', () => {});
     }
 }
 
@@ -88,16 +85,23 @@ export class ChannelManagerService {
         }
 
         channel.viewers++;
+        const viewerStream = new PassThrough({ highWaterMark: 1024 * 1024 }); // 1MB 独立缓冲区
+        viewerStream.on('error', () => {});
+        channel.viewerStreams.add(viewerStream);
+
         const activeTabs = this.getActiveTabsCount();
         const mem = await this.getBrowserMemoryUsage();
         console.log(`📡 [Count] 频道 [${pid}] 观众加入 | 活跃观众数: ${channel.viewers} | 共享浏览器内存: ${mem} | 活跃标签数: ${activeTabs}`);
         
-        return channel.stream;
+        return viewerStream;
     }
 
-    public async unregisterViewer(pid: string): Promise<void> {
+    public async unregisterViewer(pid: string, viewerStream: PassThrough): Promise<void> {
         const channel = this.channels.get(pid);
         if (!channel) return;
+
+        channel.viewerStreams.delete(viewerStream);
+        viewerStream.destroy();
 
         channel.viewers--;
         const activeTabs = this.getActiveTabsCount();
@@ -195,13 +199,29 @@ export class ChannelManagerService {
         channel.trackMap.audio.buffer = [];
 
         // 管道输出
-        child.stdout?.pipe(channel.stream, { end: false });
+        child.stdout?.on('data', (chunk: Buffer) => {
+            for (const clientStream of channel.viewerStreams) {
+                if (clientStream.writable && !clientStream.destroyed) {
+                    const ok = clientStream.write(chunk);
+                    if (!ok) {
+                        // 客户端消费过慢，如果积压过大（如超过 8MB），强行销毁
+                        if (clientStream.writableLength > 8 * 1024 * 1024) {
+                            console.warn(`⚠️ [Manager] [${channel.pid}] 客户端流积压严重 (${(clientStream.writableLength / 1024 / 1024).toFixed(1)}MB)，主动断开`);
+                            clientStream.destroy();
+                            channel.viewerStreams.delete(clientStream);
+                        }
+                    }
+                }
+            }
+        });
         
         child.on('exit', () => {
-            if (channel.ffmpeg && channel.ffmpeg.stdout) {
-                channel.ffmpeg.stdout.unpipe(channel.stream);
-            }
             channel.ffmpeg = null;
+            // 通知并结束所有客户端流
+            for (const clientStream of channel.viewerStreams) {
+                try { clientStream.end(); } catch (e) {}
+            }
+            channel.viewerStreams.clear();
         });
     }
 
@@ -223,7 +243,11 @@ export class ChannelManagerService {
 
         channel.context = null;
 
-        channel.stream.destroy();
+        for (const clientStream of channel.viewerStreams) {
+            try { clientStream.destroy(); } catch (e) {}
+        }
+        channel.viewerStreams.clear();
+
         this.channels.delete(pid);
         console.log(`🗑️ [Destroy] 频道 [${pid}] 释放完成`);
     }

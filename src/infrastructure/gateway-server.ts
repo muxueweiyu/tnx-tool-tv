@@ -97,16 +97,22 @@ export class GatewayServer {
                     'Access-Control-Allow-Origin': '*' 
                 });
 
+                let stream: any = null;
                 try {
-                    const stream = await this.channelManager.registerViewer(pid);
+                    stream = await this.channelManager.registerViewer(pid);
                     stream.pipe(res);
 
                     req.on('close', async () => {
-                        stream.unpipe(res);
-                        await this.channelManager.unregisterViewer(pid);
+                        if (stream) {
+                            stream.unpipe(res);
+                            await this.channelManager.unregisterViewer(pid, stream);
+                        }
                     });
                 } catch (err: any) {
                     console.error(`❌ [Gateway] 转发 [${pid}] 播放流失败:`, err.message || err);
+                    if (stream) {
+                        await this.channelManager.unregisterViewer(pid, stream);
+                    }
                     res.end();
                 }
                 return;
